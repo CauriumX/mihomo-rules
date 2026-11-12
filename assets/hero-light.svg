@@ -1,0 +1,51 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1640 440" preserveAspectRatio="xMidYMid meet" role="img" aria-label="mihomo rules — Every ruleset mirrored, merged and verified before it ships.">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#eef2ff"/>
+      <stop offset="0.5" stop-color="#faf5ff"/>
+      <stop offset="1" stop-color="#f4fbf9"/>
+    </linearGradient>
+    <radialGradient id="warm" cx="0.15" cy="0.2" r="0.7">
+      <stop offset="0" stop-color="#21bca8" stop-opacity="0.16"/>
+      <stop offset="1" stop-color="#21bca8" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="cool" cx="0.95" cy="0.85" r="0.6">
+      <stop offset="0" stop-color="#4F46E5" stop-opacity="0.22"/>
+      <stop offset="1" stop-color="#4F46E5" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="violet" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#4F46E5"/>
+      <stop offset="0.5" stop-color="#21bca8"/>
+      <stop offset="1" stop-color="#4F46E5"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#21bca8"/>
+      <stop offset="1" stop-color="#4F46E5"/>
+    </linearGradient>
+    <pattern id="grid" x="0" y="0" width="44" height="44" patternUnits="userSpaceOnUse">
+      <path d="M44 0 L0 0 0 44" fill="none" stroke="#0f172a" stroke-opacity="0.06" stroke-width="1"/>
+    </pattern>
+  </defs>
+
+  <rect width="1640" height="440" fill="url(#bg)"/>
+  <rect width="1640" height="440" fill="url(#warm)"/>
+  <rect width="1640" height="440" fill="url(#cool)"/>
+  <rect width="1640" height="440" fill="url(#grid)"/>
+
+  <rect x="100" y="118" width="180" height="3" rx="1.5" fill="url(#accent)" opacity="0.95"/>
+
+  <text x="100" y="102" font-family="'Inter','SF Pro Text','Avenir Next',-apple-system,Segoe UI,sans-serif" font-size="17" font-weight="600" letter-spacing="2.6" fill="#475569">RULESET PIPELINE • FETCH • MERGE • FILTER • VERIFY</text>
+
+  <text x="100" y="232" font-family="'Iowan Old Style',Palatino,Georgia,'Times New Roman',serif" font-size="112" font-weight="700" fill="#0f172a" letter-spacing="-2">mihomo<tspan fill="url(#violet)"> rules</tspan></text>
+
+  <text x="100" y="300" font-family="'Iowan Old Style',Palatino,Georgia,'Times New Roman',serif" font-size="29" font-style="italic" fill="#475569">Every ruleset mirrored, merged and verified before it ships.</text>
+  <text x="100" y="338" font-family="'Iowan Old Style',Palatino,Georgia,'Times New Roman',serif" font-size="29" font-style="italic" fill="#475569">Nineteen domain sets, three IP sets, two filtered by policy.</text>
+
+  <g transform="translate(1140 96)" font-family="'Inter','SF Pro Text',-apple-system,sans-serif" font-size="15" font-weight="600">
+    <path d="M0 0 L300 0 L190 92 L190 180 L110 220 L110 92 Z" fill="#21bca8" fill-opacity="0.10" stroke="#21bca8" stroke-width="1.5" stroke-linejoin="round"/>
+    <circle cx="150" cy="46" r="4.5" fill="#21bca8"/><circle cx="150" cy="76" r="4.5" fill="#21bca8"/>
+    <text x="24" y="52" fill="#0f172a" fill-opacity="0.72">merge</text>
+    <text x="24" y="82" fill="#0f172a" fill-opacity="0.72">filter</text>
+    <text x="196" y="140" fill="#0f172a" fill-opacity="0.72">ruleset</text>
+  </g>
+</svg>
