@@ -120,7 +120,11 @@ bad() { printf '  \033[31mFAIL\033[0m %s\n' "$*"; }
 # 那是未入库的外部依赖，CI 里必然失败。逻辑本身只有阈值判断，
 # 内联成 shell 更可靠。
 riskgrade() {
-    local old_n="$1" new_n="$2"
+    # 兼容旧调用签名：riskgrade -v <old> <new>
+    # -v 原本控制是否输出详细信息，内联实现始终输出完整行，忽略该参数。
+    [ "${1:-}" = "-v" ] && shift
+
+    local old_n="${1:-0}" new_n="${2:-0}"
 
     if [ "$old_n" -eq 0 ] && [ "$new_n" -eq 0 ]; then
         printf 'none\t0\t0\t0\t0\tboth-empty\n'
