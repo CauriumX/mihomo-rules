@@ -117,10 +117,10 @@ test('locate 内容不存在返回 null', () => {
 
 test('loadRegistry 读真实登记表', () => {
     const reg = loadRegistry();
-    assert.ok(reg.local.refs.length > 0, 'local.refs 不应为空');
-    assert.ok(reg.external.refs.length > 0, 'external.refs 不应为空');
-    assert.ok(reg.external.sources.mihomo, '应登记 mihomo 源');
-    assert.ok(reg.external.sources.misub, '应登记 misub 源');
+    // refs 可以为空：节点排序与模板格式的实证引用随文档迁到了
+    // mihomo-template 仓库，本仓库只保留规则集构建相关的引用。
+    assert.ok(Array.isArray(reg.local.refs), 'local.refs 应为数组');
+    assert.ok(Array.isArray(reg.external.refs), 'external.refs 应为数组');
 });
 
 test('loadRegistry 每条引用都有必要字段', () => {
