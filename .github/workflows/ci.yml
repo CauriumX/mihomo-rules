@@ -128,6 +128,12 @@ jobs:
             exit 0
           fi
 
+          # check 模式需要 mihomo 解码 .mrs 并与现有产物比对
+          curl -sSL -o /tmp/mihomo.gz \
+            "https://github.com/MetaCubeX/mihomo/releases/download/v1.19.33/mihomo-linux-amd64-v1.19.33.gz"
+          gunzip -f /tmp/mihomo.gz && chmod +x /tmp/mihomo
+          export PATH="/tmp:$PATH"
+
           mkdir -p upstream
           gh release download \
             --repo CauriumX/mihomo-upstream \
