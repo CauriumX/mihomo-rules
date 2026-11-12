@@ -195,31 +195,6 @@ bad() { printf '  \033[31mFAIL\033[0m %s\n' "$*"; }
 #
 # 找不到时 fail fast：宁可让 check 报错，也不要退回一份会漂移的实现。
 # ---------------------------------------------------------------------------
-RISKGRADE_SRC="${RISKGRADE_SRC:-../ruleset-diff}"
-
-riskgrade() {
-    if [ -n "${RISKGRADE:-}" ] && [ -x "${RISKGRADE}" ]; then
-        "$RISKGRADE" "$@"
-        return
-    fi
-    # command -v 会找到本函数自身，所以用 type -P 只看 PATH 里的可执行文件。
-    local on_path
-    if on_path=$(type -P riskgrade); then
-        "$on_path" "$@"
-        return
-    fi
-    if [ -d "$RISKGRADE_SRC/cmd/riskgrade" ] && command -v go >/dev/null 2>&1; then
-        ( cd "$RISKGRADE_SRC" && go run ./cmd/riskgrade "$@" )
-        return
-    fi
-    printf '\033[31m错误\033[0m 找不到 riskgrade\n\n' >&2
-    printf '分级逻辑在 %s/cmd/riskgrade，三种提供方式：\n\n' "$RISKGRADE_SRC" >&2
-    printf '  export RISKGRADE=/path/to/riskgrade   # 预编译二进制\n' >&2
-    printf '  go install ./cmd/riskgrade            # 装进 PATH\n' >&2
-    printf '  export RISKGRADE_SRC=/path/to/repo    # 用 go run\n' >&2
-    return 2
-}
-
 # ---------------------------------------------------------------------------
 # 上游完整性校验
 #
