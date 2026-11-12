@@ -1,0 +1,78 @@
+#!/bin/sh
+# post-commit 钩子：把 MiSub 的 transformConfig 锁到刚提交的 commit。
+#
+# 安装（在仓库根目录执行一次）：
+#   ln -sf ../../tools/hooks/post-commit .git/hooks/post-commit
+#   chmod +x tools/hooks/post-commit tools/hooks/post-push
+#
+# 关闭：git commit --no-verify，或 MISUB_LOCK_SKIP=1 git commit ...
+#
+# 凭证：从 ~/.config/misub/credentials 读取（KEY=VALUE 格式，权限 600）。
+#      已存在的环境变量优先，便于临时覆盖。
+#      文件不存在或 MISUB_PASSWORD 为空时安静跳过。
+#
+# 重要：只在 commit 已推到 origin/main 后才锁定。
+#   commit 时提交尚未 push，jsDelivr 拉不到该 commit（必然 404）。
+#   若此时写入 MiSub，订阅会指向一个拉不到的 URL，客户端刷新即失败。
+#   所以本钩子在未推送时只记录待锁定标记，由 tools/hooks/post-push 接手。
+#
+# 设计取舍：
+#   · 只在 main 分支上跑 —— 其他分支的 commit 推不上去，jsDelivr 也拉不到。
+#   · 后台执行，绝不阻塞 commit。MiSub 慢或挂掉不该让提交失败。
+#   · 日志写 .cache/post-commit.log，出问题先看它。
+set -u
+
+ROOT=$(git rev-parse --show-toplevel 2>/dev/null) || exit 0
+cd "$ROOT" || exit 0
+
+[ "${MISUB_LOCK_SKIP:-0}" = "1" ] && exit 0
+
+# 从凭证文件加载（不覆盖已有的环境变量）
+CRED="${MISUB_CREDENTIALS:-$HOME/.config/misub/credentials}"
+if [ -f "$CRED" ]; then
+    while IFS='=' read -r key value; do
+        case "$key" in
+            ''|'#'*) continue ;;
+        esac
+        # 去掉可能的首尾空白与引号
+        value=$(printf '%s' "$value" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//' -e 's/^"//' -e 's/"$//')
+        case "$key" in
+            MISUB_URL)      [ -n "${MISUB_URL:-}" ]      || MISUB_URL="$value" ;;
+            MISUB_PASSWORD) [ -n "${MISUB_PASSWORD:-}" ] || MISUB_PASSWORD="$value" ;;
+        esac
+    done <"$CRED"
+    export MISUB_URL MISUB_PASSWORD
+fi
+
+[ -n "${MISUB_PASSWORD:-}" ] || exit 0
+
+BRANCH=$(git rev-parse --abbrev-ref HEAD 2>/dev/null)
+[ "$BRANCH" = "main" ] || exit 0
+
+command -v node >/dev/null 2>&1 || exit 0
+
+mkdir -p "$ROOT/.cache"
+LOG="$ROOT/.cache/post-commit.log"
+PENDING="$ROOT/.cache/misub-pending"
+SHA=$(git rev-parse --short HEAD)
+
+# 先确认模板确实变了 —— 只改 README 之类的提交不需要动 MiSub。
+if ! git diff-tree --no-commit-id --name-only -r HEAD | grep -q '^templates/'; then
+    echo "[$(date -u +%FT%TZ)] $SHA 未改动 templates/，跳过" >>"$LOG"
+    exit 0
+fi
+
+# 已推送则直接锁定；未推送则只记标记，等 post-push 接手。
+if git merge-base --is-ancestor HEAD origin/main 2>/dev/null; then
+    echo "[$(date -u +%FT%TZ)] $SHA 已推送，开始锁定 MiSub" >>"$LOG"
+else
+    echo "$SHA" >"$PENDING"
+    echo "[$(date -u +%FT%TZ)] $SHA 尚未推送，已记标记，等 push 后锁定" >>"$LOG"
+    exit 0
+fi
+
+(
+    node tools/misub-lock.mjs >>"$LOG" 2>&1
+    echo "[$(date -u +%FT%TZ)] $SHA 退出码 $?" >>"$LOG"
+) &
+exit 0

@@ -1,0 +1,34 @@
+# AI-Site 补漏清单 —— 上游 A 有、上游 B 没有的 AI 业务域
+#
+# 用途：build-rules.sh 的 AI-Site 合并步骤读这个文件，
+# 把 上游 A 侧的这 6 条追加到 上游 B 的 217 条之上。
+#
+# 为什么不直接用 上游 A 全量 51 条：
+#   51 条里 15 条是通用 SaaS 依赖（stripe/sentry/segment 等），
+#   属全互联网共用，放进 🤖AI 组会误伤 —— 见 filters/ai-drop-saas.yaml。
+#   剩下 36 条里 26 条 上游 B 已有，只有这 6 条是真补漏。
+#
+# 2026-11-12 实测：这 6 条与 上游 B 的 217 条零重合。
+#
+# 已删除的 4 条（原 DOMAIN-KEYWORD）：
+#   colab / developerprofiles / generativelanguage / openai
+#
+#   它们在 上游 A 原文是 DOMAIN-KEYWORD，但 mrs 的 domain 格式
+#   只支持 exact 和 suffix，转成 mrs 后已退化为 exact 匹配 ——
+#   即匹配不到任何真实域名，是死规则。
+#
+#   删除依据（2026-11-12）：
+#     1. 目标域已被其它规则覆盖（colab.research.google.com 与
+#        generativelanguage.googleapis.com 走 DOMAIN-SUFFIX,googleapis.com
+#        → 🔍Google；openai.com 已被 上游 B 的 +.openai.com 覆盖）
+#     2. 留着是假的安全感：看起来有规则，实际匹配不到东西
+#
+#   详见 ruleset/SOURCES.md 的「KEYWORD 规则在 mrs 中的退化」一节。
+
+# --- AI 业务域 ---
+ai.com
+civitai.com
+apis.google.com
+openai-api.arkoselabs.com
+client-api.arkoselabs.com
+chat.openai.com.cdn.cloudflare.net

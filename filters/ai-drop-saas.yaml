@@ -1,0 +1,43 @@
+# AI-Site 剔除清单 —— 通用 SaaS / CDN 依赖
+#
+# 背景：上游 A 的 OpenAI / Claude / Gemini 规则集把「AI 服务的第三方依赖」
+# 也收了进来。这些域是全互联网共用的，放进 🤖AI 组会把无关流量拽进 AI 节点。
+#
+# 例：stripe.com 是 OpenAI 的支付服务商，但任何网站都可能用 Stripe。
+#     命中 AI-Site 就意味着「访问任意 Stripe 支付页都走 AI 节点」—— 这是错的。
+#
+# 2026-11-12 决策：全部剔除。上游 B 那份本来就没有这些条目（实测命中 0），
+# 所以剔除后不会丢任何 AI 服务覆盖。
+#
+# 保留的 10 条 AI 业务域（见 build-rules.sh 的 AI_KEEP）：
+#   ai.com / civitai.com / apis.google.com / openai-api.arkoselabs.com
+#   client-api.arkoselabs.com / chat.openai.com.cdn.cloudflare.net
+#   colab / developerprofiles / generativelanguage / openai
+#
+# 用法：build-rules.sh 的 build_site 对 AI-Site 合并结果调用 filter_out。
+
+# --- 支付 ---
+stripe.com
+
+# --- 监控 / 埋点 ---
+sentry.io
+browser-intake-datadoghq.com
+observeit.net
+static.cloudflareinsights.com
+
+# --- 数据分析 / 实验 ---
+segment.io
+api.statsig.com
+events.statsigapi.net
+featuregates.org
+launchdarkly.com
+cdn.usefathom.com
+
+# --- 搜索 / 客服 ---
+algolia.net
+intercom.io
+intercomcdn.com
+
+# --- 认证 ---
+auth0.com
+identrust.com

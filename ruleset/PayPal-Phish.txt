@@ -1,0 +1,20 @@
+# NAME: PayPal-Phish
+# DESC: PayPal 钓鱼/仿冒域名，建议 REJECT
+# FILTERED: 从上游 PayPal 规则集筛选
+# WARNING: 不含 paypal.com 等官方域名，可安全拦截
+# TOTAL: 15
+DOMAIN-SUFFIX,briantreepayments.net
+DOMAIN-SUFFIX,briantreepayments.tv
+DOMAIN-SUFFIX,pa9pal.com
+DOMAIN-SUFFIX,paaypal.com
+DOMAIN-SUFFIX,paipal.com
+DOMAIN-SUFFIX,pavpal.com
+DOMAIN-SUFFIX,paypa1.com
+DOMAIN-SUFFIX,paypa1.org
+DOMAIN-SUFFIX,paypaal.com
+DOMAIN-SUFFIX,paypal-secure.net
+DOMAIN-SUFFIX,paypal-secure.org
+DOMAIN-SUFFIX,paypal-security.net
+DOMAIN-SUFFIX,paypal-security.org
+DOMAIN-SUFFIX,payppal.com
+DOMAIN-SUFFIX,payypal.com

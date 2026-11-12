@@ -1,0 +1,70 @@
+# ============================================================================
+# 重要：ruleset/ 的产物必须入库！
+#
+# 原因：mihomo-apply 引用这些文件：
+#   https://cdn.jsdelivr.net/gh/CauriumX/mihomo-apply@<tag>/site/Crypto.mrs
+#   https://cdn.jsdelivr.net/gh/CauriumX/mihomo-apply@<tag>/geoip/China-IP.mrs
+#
+# 如果忽略它们，订阅里的 provider 会全部 404，规则集失效。
+#
+# 例外：ruleset/upstream/ 是上游原始快照，**不入库** ——
+# 它携带上游的 AUTHOR / REPO 头，存在私有的 mihomo-upstream 仓库。
+# ============================================================================
+
+# 临时文件
+*.tmp
+*.bak
+*.swp
+*~
+.DS_Store
+Thumbs.db
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+.pytest_cache/
+
+# 编辑器
+.vscode/
+.idea/
+*.sublime-*
+
+# 本地覆盖（不入库）
+.env
+.env.local
+*.local.yaml
+*.local.mjaa
+*.local.yml
+
+# 本地运维笔记（含部署地址、customId 等非公开信息，不入库）
+LOCAL-*.md
+SECRETS*.md
+
+# 构建临时目录
+dist/
+build/
+.cache/
+
+# 数据库备份（含 profile 数据，不入库）
+backups/
+
+# 上游原始快照（*.raw / *.yaml）体积大且可重新下载，不入库。
+# 产物（*.mrs / *.txt）必须入库 —— 客户端从仓库拉取。
+ruleset/upstream/
+
+# 本地上游记录（不入库）
+UPSTREAM-LOCAL.md
+.sanitize-backup/
+
+# 审核日志（本地保留）
+review/
+
+# 上游快照工作区
+tools/work/
+tools/dist/
+
+# 一次性迁移脚本（含上游地址，不入库）
+sanitize-upstream.sh

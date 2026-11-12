@@ -1,0 +1,148 @@
+# 规则集优先级与重叠声明
+#
+# 本文件把「谁遮蔽谁」从隐式顺序变成显式契约。
+#
+# 背景：模板的 rules: 段按顺序匹配，先命中者生效。当两个规则集有交集时，
+# 排在前面的会遮蔽后面的 —— 这是静默的。任何人重排 rules 都会改变分流结果，
+# 而 CI 看不出来。
+#
+# 本文件做两件事：
+#   1. order           —— 声明优先级（数字小者先匹配）
+#   2. allowed_overlap —— 声明「我知道这里重叠，且这是有意的」
+#
+# 构建时校验：
+#   - 出现未声明的重叠 → 失败，要求补声明
+#   - 声明了但实际无重叠 → 警告，要求删除过期声明
+#
+# 修改后跑 bash build-rules.sh verify
+
+version: 1
+updated: 2026-11-08
+
+# ---------------------------------------------------------------------------
+# order —— 优先级
+#
+# 数字小者先匹配。相同数字表示互不重叠，顺序无关。
+# AD 必须在最前（REJECT 优先于一切分流）。
+# ---------------------------------------------------------------------------
+order:
+  AD-Site: 10
+
+  # AI 服务优先于归属厂商 —— copilot / meta.ai / ai.studio 走 AI 组
+  AI-Site: 20
+
+  # 服务分流
+  Adobe-Site: 30
+  Bahamut-Site: 30
+  Bilibili-Site: 30      # 优先于 China，B 站单独分流
+  Crypto: 30
+  Discord-Site: 30
+  Disney-Site: 30
+  Netflix-Site: 30
+  PayPal: 30
+  Pixiv-Site: 30
+  Reddit-Site: 30
+  Steam-Site: 30
+  Telegram-Site: 30
+  Twitch-Site: 30
+  Twitter-Site: 30
+
+  # 大厂放后，避免抢走服务分流
+  Apple-Site: 80
+  Google-Site: 80
+  Meta-Site: 80
+  Microsoft-Site: 80
+
+  # 国内放最后（范围最大）
+  China-Site: 90
+
+# ---------------------------------------------------------------------------
+# allowed_overlap —— 有意的重叠
+#
+# 每条声明：哪两个规则集重叠、为什么这是有意的。
+# 未在此声明的重叠会在构建时报错。
+# ---------------------------------------------------------------------------
+allowed_overlap:
+  - pair: [AD-Site, China-Site]
+    why: 广告/追踪域名优先拦截，即使归属国内厂商（ad.qq.com 等）
+
+  - pair: [AD-Site, Google-Site]
+    why: 广告/追踪域名优先拦截（doubleclick / google-analytics 等）
+
+  - pair: [AD-Site, Microsoft-Site]
+    why: 广告/追踪域名优先拦截
+
+  - pair: [AD-Site, Adobe-Site]
+    why: 广告/追踪域名优先拦截
+
+  - pair: [AD-Site, Meta-Site]
+    why: 广告/追踪域名优先拦截
+
+  - pair: [AD-Site, AI-Site]
+    why: 广告/追踪域名优先拦截
+
+  - pair: [AD-Site, Pixiv-Site]
+    why: 广告/追踪域名优先拦截
+
+  - pair: [AD-Site, Twitter-Site]
+    why: 广告/追踪域名优先拦截
+
+  - pair: [AD-Site, Apple-Site]
+    why: iad.apple.com 等 Apple 广告域优先拦截
+
+  - pair: [AD-Site, PayPal]
+    why: simility.com 是 PayPal 收购的反欺诈服务，上游同时列入两个规则集
+
+  - pair: [AD-Site, Disney-Site]
+    why: Disney 的广告/追踪域名优先拦截
+
+  - pair: [AD-Site, Netflix-Site]
+    why: Netflix 的广告/追踪域名优先拦截
+
+  - pair: [AD-Site, Crypto]
+    why: 广告/追踪域名优先拦截
+
+  - pair: [Adobe-Site, Disney-Site]
+    why: 两者共享部分 Adobe 服务域（Disney 使用 Adobe 服务）
+
+  - pair: [Adobe-Site, China-Site]
+    why: Adobe 中国区服务域
+
+  - pair: [Adobe-Site, Microsoft-Site]
+    why: 两者共享部分服务域
+
+  - pair: [Apple-Site, Bahamut-Site]
+    why: 共享 CDN 域
+
+  - pair: [Apple-Site, China-Site]
+    why: Apple 中国区服务域
+
+  - pair: [Apple-Site, Google-Site]
+    why: 共享部分服务域
+
+  - pair: [Apple-Site, Microsoft-Site]
+    why: 共享部分服务域
+
+  - pair: [China-Site, Microsoft-Site]
+    why: 微软中国区服务域（21Vianet 运营）
+
+  - pair: [China-Site, Steam-Site]
+    why: Steam 中国区 CDN 域
+
+  - pair: [AI-Site, Google-Site]
+    why: Google AI 服务域（ai.studio 等）归 AI 组
+
+  - pair: [AI-Site, Twitter-Site]
+    why: grok.com 是 xAI 的 AI 服务，AI 优先级 20 先于 Twitter 的 30，走 🤖AI 组
+
+  - pair: [Bilibili-Site, China-Site]
+    why: B 站单独分流（港澳台/海外节点）
+
+# ---------------------------------------------------------------------------
+# 说明：为什么 AD 允许遮蔽这么多
+#
+# AD-Site 是 REJECT 规则，遮蔽意味着「这些域名被拦截而非分流」。
+# 这是有意的：广告/追踪域名不该走任何代理节点。
+# 但要注意 AD-Site 有 18 万条，遮蔽面很大 —— 若发现正常业务被拦，
+# 应把该域名加入 filters/ad-allowlist.yaml（待实现）。
+# ---------------------------------------------------------------------------

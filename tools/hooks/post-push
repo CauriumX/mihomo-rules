@@ -1,0 +1,73 @@
+#!/bin/sh
+# push 后锁定 MiSub 模板。
+#
+# Git 没有 post-push 钩子（只有 pre-push，在推送前执行，无法确认成功），
+# 所以这里提供独立脚本，两种用法：
+#
+#   1. 手动：git push && tools/hooks/post-push
+#   2. 别名：在 ~/.gitconfig 里加
+#        [alias]
+#            psync = "!git push && tools/hooks/post-push"
+#      之后用 git psync 代替 git push。
+#
+# 逻辑：读 .cache/misub-pending（由 post-commit 写入），
+#      确认该 commit 已到 origin/main 后再锁定。
+#
+# 关闭：MISUB_LOCK_SKIP=1 tools/hooks/post-push
+set -u
+
+ROOT=$(git rev-parse --show-toplevel 2>/dev/null) || exit 0
+cd "$ROOT" || exit 0
+
+[ "${MISUB_LOCK_SKIP:-0}" = "1" ] && exit 0
+
+CRED="${MISUB_CREDENTIALS:-$HOME/.config/misub/credentials}"
+if [ -f "$CRED" ]; then
+    while IFS='=' read -r key value; do
+        case "$key" in
+            ''|'#'*) continue ;;
+        esac
+        value=$(printf '%s' "$value" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//' -e 's/^"//' -e 's/"$//')
+        case "$key" in
+            MISUB_URL)      [ -n "${MISUB_URL:-}" ]      || MISUB_URL="$value" ;;
+            MISUB_PASSWORD) [ -n "${MISUB_PASSWORD:-}" ] || MISUB_PASSWORD="$value" ;;
+        esac
+    done <"$CRED"
+    export MISUB_URL MISUB_PASSWORD
+fi
+
+[ -n "${MISUB_PASSWORD:-}" ] || exit 0
+
+BRANCH=$(git rev-parse --abbrev-ref HEAD 2>/dev/null)
+[ "$BRANCH" = "main" ] || exit 0
+
+command -v node >/dev/null 2>&1 || exit 0
+
+mkdir -p "$ROOT/.cache"
+LOG="$ROOT/.cache/post-commit.log"
+PENDING="$ROOT/.cache/misub-pending"
+
+# 没有待锁定标记 → 无事可做
+[ -f "$PENDING" ] || exit 0
+
+SHA=$(cat "$PENDING" 2>/dev/null | tr -d '[:space:]')
+[ -n "$SHA" ] || exit 0
+
+# 确认该 commit 真的到了 origin/main
+git fetch origin main --quiet 2>/dev/null || true
+if ! git merge-base --is-ancestor "$SHA" origin/main 2>/dev/null; then
+    echo "[$(date -u +%FT%TZ)] $SHA 仍未到 origin/main，保留标记" >>"$LOG"
+    exit 0
+fi
+
+echo "[$(date -u +%FT%TZ)] $SHA 已推送，开始锁定 MiSub" >>"$LOG"
+
+# 前台执行，便于看到结果
+node tools/misub-lock.mjs 2>&1 | tee -a "$LOG"
+CODE=$?
+echo "[$(date -u +%FT%TZ)] $SHA 退出码 $CODE" >>"$LOG"
+
+if [ "$CODE" = "0" ]; then
+    rm -f "$PENDING"
+fi
+exit "$CODE"

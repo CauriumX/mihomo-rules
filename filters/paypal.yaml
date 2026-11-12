@@ -1,0 +1,143 @@
+# PayPal 域名筛选规则
+#
+# 本文件是 filter-paypal-phish.py 的唯一判定依据。
+# 判定逻辑不写在代码里，写在这里 —— 这样每次变更都能被 git diff 看见。
+#
+# 三档语义：
+#   keep     显式保留（最高优先级，即使命中 pattern_reject 也放行）
+#   reject   显式拦截（进 PayPal-Phish.txt，模板内联为 REJECT）
+#   review   待人工确认（默认保留，但每次构建都打印提醒）
+#
+# 判定优先级：keep > reject > pattern_reject > review > default
+#
+# ---------------------------------------------------------------------------
+# 关于 DNS MX 证据（重要，勿误用）
+#
+# MX 只能证真，不能证伪：
+#   MX = mx1.paypalcorp.com  → 官方（可证真）
+#   MX = bh.markmonitor.com  → 官方已收购保护（可证真）
+#   MX = 无                  → 不能证伪
+#
+# 实测：PayPal.txt 中 191 条官方域名，其中 92 条无 MX。
+# 官方子品牌域名通常不做邮件服务，无 MX 是正常的。
+# 因此「无 MX」不是钓鱼信号，只是「需要人工复核」的信号 → 归入 review 段。
+# ---------------------------------------------------------------------------
+#
+# 修改后跑 bash build-rules.sh verify 校验冲突。
+
+version: 1
+updated: 2026-11-08
+
+# ---------------------------------------------------------------------------
+# keep —— 显式保留
+#
+# 这些域名即使命中 pattern_reject 也放行。
+# 每条都要注明依据，否则下一个人无法判断能否删除。
+# ---------------------------------------------------------------------------
+keep:
+  # 核心业务
+  - domain: paypal.com
+    why: 官方主域，MX=mx1.paypalcorp.com
+  - domain: paypal.me
+    why: 官方短链
+  - domain: paypalobjects.com
+    why: 官方静态资源域
+  - domain: paypalcorp.com
+    why: 官方企业域
+
+  # typo 变体但已被 PayPal 收购保护 —— MX 指向品牌保护商
+  - domain: ppaypal.com
+    why: MX=bh.markmonitor.com，PayPal 已收购保护；曾被 ^ppaypal\\. 正则误判
+
+# ---------------------------------------------------------------------------
+# reject —— 显式拦截
+#
+# 明确的 typo 变体，DNS 无 MX 且无官方持有证据。
+# ---------------------------------------------------------------------------
+reject:
+  - domain: pa9pal.com
+    why: 数字 9 冒充 y
+  - domain: paypa1.com
+    why: 数字 1 冒充 l
+  - domain: paypa1.org
+    why: 数字 1 冒充 l
+  - domain: paaypal.com
+    why: 双 a
+  - domain: paipal.com
+    why: 缺 y
+  - domain: pavpal.com
+    why: v 冒充 y
+  - domain: paypaal.com
+    why: 双 a
+  - domain: payppal.com
+    why: 双 p
+  - domain: payypal.com
+    why: 双 y
+  - domain: paypal-secure.net
+    why: 钓鱼惯用词组合
+  - domain: paypal-secure.org
+    why: 钓鱼惯用词组合
+  - domain: paypal-security.net
+    why: 钓鱼惯用词组合
+  - domain: paypal-security.org
+    why: 钓鱼惯用词组合
+  - domain: briantreepayments.net
+    why: Braintree typo（正确拼写 braintree）
+  - domain: briantreepayments.tv
+    why: Braintree typo（正确拼写 braintree）
+
+# ---------------------------------------------------------------------------
+# review —— 待人工确认
+#
+# 默认按 keep 处理（不拦截），但每次构建都会打印提醒。
+# 确认后请移入 keep 或 reject，并删掉这里的条目。
+# ---------------------------------------------------------------------------
+review:
+  - domain: paypall.com
+    why: 无 MX，双 l 变体；上游列为官方
+  - domain: paypaly.com
+    why: 无 MX，y 结尾变体；上游列为官方
+  - domain: paypali.net
+    why: 无 MX，i 结尾变体；上游列为官方
+  - domain: securepaypal.info
+    why: 无 MX，secure 前缀变体
+  - domain: sslpaypal.org
+    why: 无 MX，ssl 前缀变体
+  - domain: login-paypal.com
+    why: 无 MX，login 前缀变体
+  - domain: accountpaypal.com
+    why: 无 MX，account 前缀变体
+  - domain: thepaypalshop.com
+    why: 无 MX，shop 变体
+
+# ---------------------------------------------------------------------------
+# pattern_reject —— 正则兜底
+#
+# 只覆盖已确认的 typo 家族。新增模式前请先在 reject 段加显式条目，
+# 确认无误后再考虑提升为模式。
+#
+# ⚠️ 这里的模式与 keep 冲突时，keep 优先（不会静默取其一）。
+# ---------------------------------------------------------------------------
+pattern_reject:
+  - pattern: '^pa9pal\.'
+    why: 数字 9 冒充 y
+  - pattern: '^paaypal\.'
+    why: 双 a
+  - pattern: '^paipal\.'
+    why: 缺 y
+  - pattern: '^pavpal\.'
+    why: v 冒充 y
+  - pattern: '^paypa1\.'
+    why: 数字 1 冒充 l
+  - pattern: '^paypaal\.'
+    why: 双 a
+  - pattern: '^payppal\.'
+    why: 双 p
+  - pattern: '^payypal\.'
+    why: 双 y
+  - pattern: '^briantree'
+    why: Braintree typo
+  - pattern: '^paypal-secure\.'
+    why: 钓鱼惯用词组合
+  - pattern: '^paypal-security\.'
+    why: 钓鱼惯用词组合

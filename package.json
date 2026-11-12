@@ -1,0 +1,43 @@
+{
+  "name": "mihomo-rules",
+  "version": "0.1.0",
+  "description": "MiSub 订阅模板与规则集构建流水线",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "bash build-rules.sh apply",
+    "build:site": "bash build-rules.sh site",
+    "build:geoip": "bash build-rules.sh geoip",
+    "build:crypto": "bash build-rules.sh crypto",
+    "build:paypal": "bash build-rules.sh paypal",
+    "verify": "bash build-rules.sh verify",
+    "test": "node --test tools/*.test.mjs",
+    "sync:nodes": "node tools/sync-nodes.mjs",
+    "check:nodes": "node tools/check-node-names.mjs",
+    "check:agents": "node tools/check-agents-md.mjs",
+    "check:refs": "node tools/check-doc-refs.mjs",
+    "check:version": "node tools/check-version-contract.mjs",
+    "misub:lock": "node tools/misub-lock.mjs",
+    "misub:check": "node tools/misub-lock.mjs --check",
+    "misub:rollback": "node tools/misub-lock.mjs --rollback",
+    "test:py": "python3 -m pytest tests/ -q",
+    "check:rules": "python3 filter-paypal-phish.py --check",
+    "check:overlap": "python3 tools/check-overlap.py",
+    "check": "bash build-rules.sh check",
+    "snapshot": "bash tools/snapshot.sh all",
+    "snapshot:fetch": "bash tools/snapshot.sh fetch",
+    "snapshot:prune": "bash tools/snapshot.sh prune"
+  },
+  "keywords": [
+    "mihomo",
+    "clash",
+    "misub",
+    "ruleset",
+    "proxy"
+  ],
+  "author": "Guislabert",
+  "license": "MIT",
+  "engines": {
+    "node": ">=18"
+  }
+}
