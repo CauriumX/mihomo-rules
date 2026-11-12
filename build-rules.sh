@@ -518,15 +518,31 @@ with open(out_path, 'w', encoding='utf-8', newline='\n') as f:
 print(f'  原始 {len(crypto_ordered)} 条 → 保留 {len(kept)} 条，剔除 {removed} 条')
 PY
 
-    # 编译为 mrs（需要 mihomo 的 rule-set 转换工具）
+    # 编译为 mrs。
+    #
+    # 必须剔除 DOMAIN-KEYWORD 行：mihomo 的 domainStrategy.Insert() 把整行
+    # 当域名插进 trie，不解析 "domain-keyword," 前缀 —— 转成 mrs 后这些行
+    # 会变成永远匹配不到的字面量。
+    #
+    # 对应的 5 条 keyword 内联在模板 rules: 段（RULE-SET,Crypto 之前）。
     if command -v mihomo >/dev/null 2>&1; then
-        mihomo convert-ruleset domain text "$out" "$DEST/Crypto.mrs" 2>/dev/null \
-            && ok "Crypto.mrs 已生成" \
-            || bad "mrs 编译失败（Mihomo 版本不支持 convert-ruleset）"
+        local plain
+        plain="$(mktemp)"
+        grep -v '^DOMAIN-KEYWORD,' "$out" \
+            | sed 's/^DOMAIN-SUFFIX,//; s/^DOMAIN,//' > "$plain"
+
+        local kw_count
+        kw_count=$(grep -c '^DOMAIN-KEYWORD,' "$out" || true)
+
+        if mihomo convert-ruleset domain text "$plain" "$DEST/Crypto.mrs" 2>/dev/null; then
+            ok "Crypto.mrs 已生成（剔除 $kw_count 条 keyword，见模板内联）"
+        else
+            bad "mrs 编译失败（Mihomo 版本不支持 convert-ruleset）"
+        fi
+        rm -f "$plain"
     else
         printf '  \033[33mSKIP\033[0m 未找到 mihomo 命令，仅输出 .txt\n'
         printf '         安装：https://github.com/MetaCubeX/mihomo/releases\n'
-        printf '         或直接让客户端用 .txt（format: text）\n'
     fi
 
     ok "Crypto.txt → $out"
@@ -574,6 +590,25 @@ build_paypal() {
     n_phish=$(grep -c '^DOMAIN' "$phish" || true); n_phish=${n_phish:-0}
     ok "PayPal.txt ($n_clean 条官方)"
     ok "PayPal-Phish.txt ($n_phish 条钓鱼)"
+
+    # 编译 PayPal.mrs，剔除 DOMAIN-KEYWORD（原因同 Crypto：mrs 不支持）。
+    # 对应的 9 条 keyword 内联在模板 rules: 段（RULE-SET,PayPal 之前）。
+    if command -v mihomo >/dev/null 2>&1; then
+        local plain kw_count
+        plain="$(mktemp)"
+        grep -v '^DOMAIN-KEYWORD,' "$out" \
+            | sed 's/^DOMAIN-SUFFIX,//; s/^DOMAIN,//' > "$plain"
+        kw_count=$(grep -c '^DOMAIN-KEYWORD,' "$out" || true)
+
+        if mihomo convert-ruleset domain text "$plain" "$DEST/PayPal.mrs" 2>/dev/null; then
+            ok "PayPal.mrs 已生成（剔除 $kw_count 条 keyword，见模板内联）"
+        else
+            bad "PayPal.mrs 编译失败"
+        fi
+        rm -f "$plain"
+    else
+        printf '  \033[33mSKIP\033[0m 未找到 mihomo，跳过 PayPal.mrs\n'
+    fi
 
     # 自动同步内联段到模板
     #
