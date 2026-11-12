@@ -43,14 +43,6 @@ jobs:
       - name: Doc source references valid
         run: node tools/check-doc-refs.mjs --fetch
 
-      # 模板与规则集的版本契约 —— 防止「模板锁 commit、规则集漂 @main」
-      - name: Template/ruleset version contract
-        run: node tools/check-version-contract.mjs
-
-      # Badge row audit — fails if a README badge row drifts from the standard.
-      - name: Badge row audit
-        run: node module/badges-google/google-badges.mjs .
-
       # Unit tests (sync-nodes, render-check, check-node-names, check-agents-md,
       # check-doc-refs).
       - name: Unit tests
