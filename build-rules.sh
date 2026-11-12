@@ -104,6 +104,84 @@ ok()  { printf '  \033[32mOK\033[0m   %s\n' "$*"; }
 bad() { printf '  \033[31mFAIL\033[0m %s\n' "$*"; }
 
 # ---------------------------------------------------------------------------
+# riskgrade —— 变更分级
+#
+# 输出格式（tab 分隔，6 字段）：
+#   risk  <ignored>  <ignored>  delta  pct  note
+#
+# 分级阈值（唯一实现，不要再在别处重算）：
+#   两边都为空        → none
+#   旧为 0 且新 > 0   → info，note=new
+#   变化幅度 > 30%    → BLOCK
+#   变化幅度 > 5%     → warn
+#   其余              → info
+#
+# 历史：曾依赖仓库外的 Go 项目（../ruleset-diff 的 cmd/riskgrade）。
+# 那是未入库的外部依赖，CI 里必然失败。逻辑本身只有阈值判断，
+# 内联成 shell 更可靠。
+riskgrade() {
+    local old_n="$1" new_n="$2"
+
+    if [ "$old_n" -eq 0 ] && [ "$new_n" -eq 0 ]; then
+        printf 'none\t0\t0\t0\t0\tboth-empty\n'
+        return 0
+    fi
+
+    local delta=$(( new_n - old_n ))
+    local pct note=""
+
+    if [ "$old_n" -eq 0 ]; then
+        pct=100
+        note="new"
+    else
+        pct=$(( delta * 100 / old_n ))
+        [ "$pct" -lt 0 ] && pct=$(( -pct ))
+    fi
+
+    local risk
+    if [ "$note" = "new" ]; then
+        risk="info"
+    elif [ "$pct" -gt 30 ]; then
+        risk="BLOCK"
+    elif [ "$pct" -gt 5 ]; then
+        risk="warn"
+    else
+        risk="info"
+    fi
+
+    printf '%s\t0\t0\t%s\t%s\t%s\n' "$risk" "$delta" "$pct" "$note"
+}
+
+require_src_rules() {
+    # 快照模式不需要网络地址
+    [ -n "$SNAPSHOT_DIR" ] && return 0
+    if [ -z "$SRC_RULES" ]; then
+        printf '\033[31m错误\033[0m SRC_RULES 为空\n\n' >&2
+        printf '本脚本需要规则集上游地址才能拉取。用法：\n\n' >&2
+        printf '  bash build-rules.sh all\n\n' >&2
+        printf '或显式覆盖：\n\n' >&2
+        printf '  export SRC_RULES="https://your-upstream.example.com"\n' >&2
+        exit 1
+    fi
+}
+[ -n "$SNAPSHOT_DIR" ] || SRC_UPSTREAM_C="${SRC_UPSTREAM_C:?未设置 SRC_UPSTREAM_C，见 .env.example 或本地 .env.local}"
+
+# 产物目录。check 模式下指向临时目录，不污染工作区。
+DEST="${DEST_OVERRIDE:-ruleset}"
+UPSTREAM="$DEST/upstream"
+TARGET="${1:-}"
+
+# check 模式：先构建到临时目录，再与现有产物 diff，不写入。
+# apply 模式：直接构建到 ruleset/。
+MODE="${MODE:-apply}"
+
+mkdir -p "$DEST" "$DEST/geoip" "$UPSTREAM"
+
+log() { printf '\033[36m==>\033[0m %s\n' "$*"; }
+ok()  { printf '  \033[32mOK\033[0m   %s\n' "$*"; }
+bad() { printf '  \033[31mFAIL\033[0m %s\n' "$*"; }
+
+# ---------------------------------------------------------------------------
 # riskgrade —— 分级逻辑的唯一实现
 #
 # 阈值定义在仓库外的 internal/risk（Go 包），build-rules.sh
