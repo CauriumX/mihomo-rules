@@ -157,3 +157,21 @@ jobs:
           fi
 
           bash build-rules.sh check
+
+      # 审核日志归档。
+      #
+      # diff_report() 每次都会把变更写进 review/decisions.jsonl，但该目录
+      # 已 gitignore，CI 跑完就随 runner 销毁 —— 半年后问「AD-Site 为什么是
+      # 316,103 条」只能翻 commit 猜。
+      #
+      # 这里把它作为 artifact 留存。用 always() 是必须的：build-rules.sh check
+      # 在有差异时返回非零（rc=1），BLOCK 时返回其它非零码，那些恰恰是最需要
+      # 留下决策记录的运行。不加 always() 就只会在「一切正常」时才归档。
+      - name: Upload review log
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: review-decisions
+          path: review/decisions.jsonl
+          if-no-files-found: ignore
+          retention-days: 90
