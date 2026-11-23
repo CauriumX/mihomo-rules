@@ -5,6 +5,33 @@ All notable changes to this project are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 versioning follows [SemVer 2.0.0](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.2] - 2026-11-12
+
+对齐已发布的流水线版本。规则集产物与 `mihomo-apply@v0.1.2` 同版，
+README badge 指向 `mihomo-apply/tags`（产品版本由发布仓决定，本仓
+只承载构建逻辑与镜像产物）。
+
+本版之前的 `package.json` 与 CHANGELOG 停在 0.1.0，而 badge 已是 0.1.2，
+`version-check` 因此在 CI 第 4 步失败，导致其后 8 项检查全部被跳过
+（含规则集完整性与快照构建）。此条目补齐版本链。
+
+### Added
+
+- **Crypto / PayPal 生成 `mrs`** — `build-rules.sh` 产出 `Crypto.mrs` /
+  `PayPal.mrs`。`mrs` 不支持 `DOMAIN-KEYWORD`，因此把 14 条 keyword
+  规则内联进模板的 `rules:` 段。
+
+### Fixed
+
+- **`riskgrade` 内联** — 去掉未入库的 Go 依赖，改用内置实现。
+  修复重复定义，并兼容 `-v` 参数。
+- **CI 快照构建** — 补齐 mihomo 安装步骤；移除引用已迁走文件的步骤。
+
+### Changed
+
+- 文档引用随 `mihomo-template` 拆分迁出，`loadRegistry` 允许 `refs` 为空。
+- README 按 Readme Harness 骨架重写。
+
 ## [0.1.0] - 2026-11-12
 
 首次发布。四仓架构的第一环：规则集构建流水线。
