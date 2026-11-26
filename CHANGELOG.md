@@ -5,6 +5,13 @@ All notable changes to this project are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 versioning follows [SemVer 2.0.0](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.6] - 2026-11-26
+
+### Changed
+- **分发的 `template.yaml` 分段排版**：顶部全局标量块紧凑，之后每个顶层段空一行；`proxy-groups` 每组、`rule-providers` 每个 provider 之间空一行（参考上游订阅模板的观感）。
+  - 只动空行，不重排顺序、不改引号；渲染时断言排版前后 `yaml.safe_load` 深度相等。
+  - CI 加排版守卫（空行数 + 段头紧接第一个条目）。
+
 ## [0.1.5] - 2026-11-26
 
 ### Changed
