@@ -5,6 +5,17 @@ All notable changes to this project are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 versioning follows [SemVer 2.0.0](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.7] - 2026-11-26
+
+### Fixed
+- **`fake-ip-filter` 29 条过滤器此前全部失效**：条目写的是规则语法（`"DOMAIN-SUFFIX,lan,real-ip"`），模式却是 `blacklist`。blacklist 走 `trie.DomainSetBuilder.Insert()`，只认 `+.domain`/`domain`，整串被当字面域名插入，永不命中。
+  - 实测：`blacklist` + 规则语法 → 仍返回 fake-ip；`rule` + 规则语法 → 真实 IP。
+  - 影响：`msftconnecttest`（Windows 网络检测）、`mtalk.google`（GMS 推送）、`xunlei`、`adguard`、`lan`/`local` 等 real-ip 意图全部没生效。
+  - 已改为 `fake-ip-filter-mode: rule` 并补显式 `MATCH,fake-ip`。
+
+### Changed
+- **排序统一**：`rule-providers` 与 `proxy-groups` 均按「类别字母序 + Site 在 IP 前」；`Main Proxy`/`Manual Select`/`China Services` 固定首三，`Load Balance`/`Auto Select` 固定末二。此前新增的三组在 group 里被追加到末尾、provider 里却插在 `Apple` 之前。
+
 ## [0.1.6] - 2026-11-26
 
 ### Changed
