@@ -711,9 +711,17 @@ build_site() {
     #            等我们完全没有的服务 → 与 上游 A 合并
     #   其余 17 个重合率 90%+，同源，保持 上游 A
     #
-    # 目前没有「纯换源」的规则集 —— 两个例外都走合并。
-    # 保留这个数组是为了将来有规则集确实只该用 上游 B 时直接加。
-    local -a sakura_items=()
+    # 「纯换源」的规则集：这些类目 上游 A(blackmatrix7) 根本没有，只能取 上游 B。
+    #   IntlAcademic  国际学术站点（Sakura 独有，sing-box 侧已迭代到 V3）
+    #   PlayStation   游戏平台
+    #   Spotify       音乐流媒体
+    # 取源失败（如快照尚未包含该类目）时按「跳过 + 警告」处理，不阻断整条构建 ——
+    # 这样在 snapshot 尚未归档该类目时 CI 仍绿，归档后自动纳入。
+    local -a sakura_items=(
+        "IntlAcademic-Site:IntlAcademic"
+        "PlayStation-Site:PlayStation"
+        "Spotify-Site:Spotify"
+    )
 
     # AD-Site 合并：上游 A 全量 + 上游 B 补仿冒域
     #
@@ -802,7 +810,7 @@ build_site() {
         plain="$(mktemp)"
 
         if ! fetch_sakura_mrs "$cat" "$plain"; then
-            failc=$((failc+1))
+            printf '  \033[33mWARN\033[0m Sakura %s 取源失败，跳过（快照可能尚未归档该类目）\n' "$cat"
             rm -f "$plain"
             continue
         fi

@@ -5,6 +5,17 @@ on:
     branches: [main]
   pull_request:
   workflow_dispatch:
+  schedule:
+    # 每 6 小时兜底检查（与 mihomo-upstream 的快照 cron 错开 30 分钟）。
+    # 即便上游未配置 dispatch token，这一条也能让「上游规则变化 / 新增类目」自动被发现。
+    - cron: '30 */6 * * *'
+  repository_dispatch:
+    # 上游快照仓发布后主动触发（可选加速；未配 PAT 时依赖上面的 schedule）。
+    types: [snapshot-published]
+
+permissions:
+  contents: read
+  issues: write
 
 jobs:
   version-and-rules:
@@ -117,13 +128,18 @@ jobs:
       #
       # 需要 UPSTREAM_READ_TOKEN：fine-grained PAT，仅 mihomo-upstream 的
       # contents:read。缺这个 secret 时跳过（fork / 本地跑不会红）。
+      #
+      # 检测到上游变化（check 退出码非 0，或快照标注了新增类目）时，
+      # 自动开/更新一个 issue 作为提醒 —— 光让 CI 变红没人看 Actions 页。
       - name: Build from upstream snapshot
+        id: upstream
         env:
-          GH_TOKEN: ${{ secrets.UPSTREAM_READ_TOKEN }}
+          UPSTREAM_TOKEN: ${{ secrets.UPSTREAM_READ_TOKEN }}
+          REPO_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -euo pipefail
 
-          if [ -z "${GH_TOKEN:-}" ]; then
+          if [ -z "${UPSTREAM_TOKEN:-}" ]; then
             echo "SKIP: UPSTREAM_READ_TOKEN 未配置，跳过快照构建"
             exit 0
           fi
@@ -135,6 +151,7 @@ jobs:
           export PATH="/tmp:$PATH"
 
           mkdir -p upstream
+          export GH_TOKEN="$UPSTREAM_TOKEN"
           gh release download \
             --repo CauriumX/mihomo-upstream \
             --pattern 'snapshots.tar.gz' \
@@ -142,6 +159,11 @@ jobs:
               echo "SKIP: 私有仓暂无快照 Release"
               exit 0
             }
+          # 新增类目变更清单（mihomo-upstream 的 probe 产出；旧快照可能没有）
+          gh release download \
+            --repo CauriumX/mihomo-upstream \
+            --pattern 'inventory-changes.json' \
+            --dir upstream/ --clobber 2>/dev/null || true
 
           tar xzf upstream/snapshots.tar.gz -C upstream/
 
@@ -156,7 +178,49 @@ jobs:
             exit 0
           fi
 
+          # 捕获 check 结果，不让 set -e 直接中断
+          set +e
           bash build-rules.sh check
+          rc=$?
+
+          # 从 inventory-changes.json 提取新增类目（若上游 probe 产出了该文件）
+          newcats=""
+          if [ -f upstream/inventory-changes.json ]; then
+            newcats=$(jq -r '((.added.upstreamA // []) + (.added.sakura // [])) | join(", ")' \
+                       upstream/inventory-changes.json 2>/dev/null || true)
+          fi
+
+          if [ "$rc" -ne 0 ] || [ -n "$newcats" ]; then
+            echo "::warning::检测到上游变更（check rc=$rc, 新增类目=${newcats:-无}）"
+            export GH_TOKEN="$REPO_TOKEN"
+            TITLE="[auto] 上游规则变更待发布"
+            BODY=$(printf '%s\n' \
+              "mihomo-rules 定时/触发检查发现上游有变动，需要走 check→apply→发布。" \
+              "" \
+              "- check 退出码: \`$rc\`（0=无变化, 1=warn>5%, 2=BLOCK>30%）" \
+              "- 新增类目: \`${newcats:-无}\`" \
+              "- 触发方式: \`${GITHUB_EVENT_NAME}\`" \
+              "" \
+              "## 变更摘要（review/decisions.jsonl 末尾）" \
+              '```' \
+              "$(tail -20 review/decisions.jsonl 2>/dev/null || echo '(无)')" \
+              '```' \
+              "" \
+              "处理：\`SNAPSHOT_DIR=<快照> bash build-rules.sh apply\` → 提交 → mihomo-apply 发版。")
+            existing=$(gh issue list --repo "$GITHUB_REPOSITORY" --state open \
+                         --search '上游规则变更待发布 in:title' \
+                         --json number --jq '.[0].number' 2>/dev/null || true)
+            if [ -n "$existing" ]; then
+              gh issue comment "$existing" --repo "$GITHUB_REPOSITORY" --body "$BODY" || true
+            else
+              gh issue create --repo "$GITHUB_REPOSITORY" --title "$TITLE" --body "$BODY" || true
+            fi
+          else
+            echo "上游无变更"
+          fi
+
+          # 已通过 issue 提醒，退出码保持 0，避免每 6 小时一次的红叉噪音
+          exit 0
 
       # 审核日志归档。
       #
