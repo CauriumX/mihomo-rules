@@ -1385,6 +1385,94 @@ PY2
     return 1
 }
 
+
+# ---------------------------------------------------------------------------
+# Shadowrocket / Surge 规则集（.list，纯文本）
+#
+# .mrs 是 mihomo 私有二进制，.srs 是 sing-box 二进制，两者 Shadowrocket 都读不了。
+# Shadowrocket 走 Surge 兼容的纯文本规则列表：每行一条 `DOMAIN-SUFFIX,foo.com`。
+#
+# 数据源同样是已提交的 .mrs（解码后归一化），保证三套产物同一次构建。
+#
+# 注意：Surge 规则列表里每行「只写规则，不带策略」—— 策略在模板的
+# RULE-SET,<url>,<policy> 那一行给。
+# ---------------------------------------------------------------------------
+build_list() {
+    log "生成 Shadowrocket 规则集（.list）→ $DEST/list/"
+
+    command -v mihomo >/dev/null 2>&1 || { bad "生成 .list 需要 mihomo 解码 .mrs"; return 1; }
+
+    mkdir -p "$DEST/list/site" "$DEST/list/geoip"
+
+    local okc=0 failc=0 f name kind plain out
+
+    # mrs 裸文本 → Surge 规则列表
+    to_list() {
+        local kind="$1" plain="$2" out="$3"
+        python3 - "$kind" "$plain" "$out" <<'PY2'
+import sys
+kind, plain, out = sys.argv[1:4]
+lines = [l.strip() for l in open(plain, encoding='utf-8', errors='ignore')
+         if l.strip() and not l.startswith('#')]
+res = []
+if kind == 'domain':
+    for l in lines:
+        if l.startswith('+.'):
+            res.append('DOMAIN-SUFFIX,' + l[2:])
+        else:
+            res.append('DOMAIN,' + l)
+else:
+    for l in lines:
+        kind_ip = 'IP-CIDR6' if ':' in l else 'IP-CIDR'
+        res.append(f'{kind_ip},{l},no-resolve')
+if not res:
+    sys.exit('空规则集，拒绝生成')
+open(out, 'w', encoding='utf-8', newline='\n').write('\n'.join(res) + '\n')
+PY2
+    }
+
+    for f in "$DEST"/site/*.mrs; do
+        [ -s "$f" ] || continue
+        name="$(basename "$f" .mrs)"
+        plain="$(mktemp)"; out="$DEST/list/site/$name.list"
+        if ! mihomo convert-ruleset domain mrs "$f" "$plain" 2>/dev/null; then
+            bad "$name 解码失败"; failc=$((failc+1)); rm -f "$plain"; continue
+        fi
+        if to_list domain "$plain" "$out"; then okc=$((okc+1)); else failc=$((failc+1)); fi
+        rm -f "$plain"
+    done
+
+    for f in "$DEST"/geoip/*.mrs; do
+        [ -s "$f" ] || continue
+        name="$(basename "$f" .mrs)"
+        plain="$(mktemp)"; out="$DEST/list/geoip/$name.list"
+        if ! mihomo convert-ruleset ipcidr mrs "$f" "$plain" 2>/dev/null; then
+            bad "$name 解码失败"; failc=$((failc+1)); rm -f "$plain"; continue
+        fi
+        if to_list ipcidr "$plain" "$out"; then okc=$((okc+1)); else failc=$((failc+1)); fi
+        rm -f "$plain"
+    done
+
+    local pair
+    for pair in "Crypto:domain" "PayPal:domain"; do
+        name="${pair%%:*}"; kind="${pair##*:}"
+        f="$DEST/$name.mrs"
+        [ -s "$f" ] || continue
+        plain="$(mktemp)"; out="$DEST/list/$name.list"
+        if ! mihomo convert-ruleset "$kind" mrs "$f" "$plain" 2>/dev/null; then
+            bad "$name 解码失败"; failc=$((failc+1)); rm -f "$plain"; continue
+        fi
+        if to_list "$kind" "$plain" "$out"; then okc=$((okc+1)); else failc=$((failc+1)); fi
+        rm -f "$plain"
+    done
+
+    if [ "$failc" -gt 0 ]; then
+        bad "Shadowrocket 规则集：$okc 成功 / $failc 失败"
+        return 1
+    fi
+    ok "Shadowrocket 规则集：$okc 个全部生成"
+}
+
 build_singbox() {
     require_singbox || return 1
     log "生成 sing-box 规则集（.srs）→ $DEST/singbox/"
@@ -1443,6 +1531,7 @@ case "$TARGET" in
     site)   build_site ;;
     geoip)  build_geoip ;;
     singbox) build_singbox ;;
+    list)   build_list ;;
     verify) verify ;;
 
     # -----------------------------------------------------------------------
@@ -1475,6 +1564,7 @@ case "$TARGET" in
         build_site
         build_geoip
         build_singbox
+        build_list
 
         # 临时产物与现有产物对比
         rc=0
@@ -1503,6 +1593,7 @@ case "$TARGET" in
         build_site
         build_geoip
         build_singbox
+        build_list
         verify
         echo
         log "构建完成。产物："

@@ -154,6 +154,32 @@ jobs:
           [ "$missing" -eq 0 ] || exit 1
           echo "  OK  $(find /tmp/srscheck/singbox -name '*.srs' | wc -l) 个 .srs 与仓库一致"
 
+      # Shadowrocket / Surge 规则集（.list）：与 mrs 同源，纯文本。
+      - name: surfboard/shadowrocket rule lists (.list) present
+        run: |
+          set -euo pipefail
+          curl -sSL -o /tmp/mihomo.gz \
+            "https://github.com/MetaCubeX/mihomo/releases/download/v1.19.33/mihomo-linux-amd64-v1.19.33.gz"
+          gunzip -f /tmp/mihomo.gz && chmod +x /tmp/mihomo
+          export PATH="/tmp:$PATH"
+
+          DEST_OVERRIDE=/tmp/listcheck bash build-rules.sh list
+          missing=0
+          for f in /tmp/listcheck/list/site/*.list /tmp/listcheck/list/geoip/*.list /tmp/listcheck/list/*.list; do
+            rel="${f#/tmp/listcheck/}"
+            [ -s "ruleset/$rel" ] || { echo "::error::缺少已提交的 ruleset/$rel"; missing=1; }
+          done
+          [ "$missing" -eq 0 ] || exit 1
+
+          # 纯文本格式必须是 Surge 那套（DOMAIN,/DOMAIN-SUFFIX,/IP-CIDR…），
+          # 不能混进 mihomo 语法（+. 前缀）或二进制
+          bad=$(grep -hcE '^\+\.' ruleset/list/site/*.list 2>/dev/null | awk '{s+=$1} END{print s+0}')
+          if [ "$bad" -ne 0 ]; then
+            echo "::error::list 里出现了 mihomo 风格前缀（+.），应为 DOMAIN-SUFFIX,";
+            exit 1
+          fi
+          echo "  OK  $(find ruleset/list -name '*.list' | wc -l) 个 .list 与仓库一致"
+
       # 从私有仓下载最新快照，跑一次完整构建，验证产物可复现。
       #
       # 这一步是 CI 的核心价值：证明「给定快照 → 产物」这条链路是通的，
