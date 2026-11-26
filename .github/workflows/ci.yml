@@ -142,7 +142,9 @@ jobs:
           export PATH="/tmp:$PATH"
 
           # 重建到临时目录后与已提交产物比对
-          DEST_OVERRIDE=/tmp/srscheck SINGBOX_BIN="$SINGBOX_BIN" bash build-rules.sh singbox
+          mkdir -p /tmp/nosnap
+          # singbox 只解码已有 .mrs，不访问上游；SNAPSHOT_DIR 仅用于满足脚本启动时的环境检查
+          DEST_OVERRIDE=/tmp/srscheck SNAPSHOT_DIR=/tmp/nosnap SINGBOX_BIN="$SINGBOX_BIN" bash build-rules.sh singbox
           missing=0
           for f in /tmp/srscheck/singbox/site/*.srs /tmp/srscheck/singbox/geoip/*.srs /tmp/srscheck/singbox/*.srs; do
             rel="${f#/tmp/srscheck/}"
@@ -163,7 +165,8 @@ jobs:
           gunzip -f /tmp/mihomo.gz && chmod +x /tmp/mihomo
           export PATH="/tmp:$PATH"
 
-          DEST_OVERRIDE=/tmp/listcheck bash build-rules.sh list
+          mkdir -p /tmp/nosnap
+          DEST_OVERRIDE=/tmp/listcheck SNAPSHOT_DIR=/tmp/nosnap bash build-rules.sh list
           missing=0
           for f in /tmp/listcheck/list/site/*.list /tmp/listcheck/list/geoip/*.list /tmp/listcheck/list/*.list; do
             rel="${f#/tmp/listcheck/}"
