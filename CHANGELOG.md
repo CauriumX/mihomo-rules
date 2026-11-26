@@ -5,6 +5,13 @@ All notable changes to this project are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 versioning follows [SemVer 2.0.0](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.4] - 2026-11-26
+
+### Changed
+- **分发的 `template.yaml` 去掉注释**（在 `mihomo-apply` 渲染阶段剥离）：
+  30,050 B → 19,503 B，268 行注释不再随订阅下发；源码模板 `mihomo-template` 保留完整注释作为说明书，产物只留 3 行来源头。
+  剥离为引号感知（`"114.114.114.114#DIRECT"` 里的 `#` 是数据），并加「剥离前后 `yaml.safe_load` 深度相等」硬断言与 CI 回归守卫。
+
 ## [0.1.3] - 2026-11-26
 
 ### Changed
