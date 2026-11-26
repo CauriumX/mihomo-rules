@@ -1404,6 +1404,10 @@ build_list() {
 
     mkdir -p "$DEST/list/site" "$DEST/list/geoip"
 
+    # 同 build_singbox：本目标只对已有 .mrs 转码，$DEST 为空时读已提交的 ruleset/
+    local src="$DEST"
+    [ -n "$(ls -A "$src/site" 2>/dev/null)" ] || src="ruleset"
+
     local okc=0 failc=0 f name kind plain out
 
     # mrs 裸文本 → Surge 规则列表
@@ -1431,7 +1435,7 @@ open(out, 'w', encoding='utf-8', newline='\n').write('\n'.join(res) + '\n')
 PY2
     }
 
-    for f in "$DEST"/site/*.mrs; do
+    for f in "$src"/site/*.mrs; do
         [ -s "$f" ] || continue
         name="$(basename "$f" .mrs)"
         plain="$(mktemp)"; out="$DEST/list/site/$name.list"
@@ -1442,7 +1446,7 @@ PY2
         rm -f "$plain"
     done
 
-    for f in "$DEST"/geoip/*.mrs; do
+    for f in "$src"/geoip/*.mrs; do
         [ -s "$f" ] || continue
         name="$(basename "$f" .mrs)"
         plain="$(mktemp)"; out="$DEST/list/geoip/$name.list"
@@ -1456,7 +1460,7 @@ PY2
     local pair
     for pair in "Crypto:domain" "PayPal:domain"; do
         name="${pair%%:*}"; kind="${pair##*:}"
-        f="$DEST/$name.mrs"
+        f="$src/$name.mrs"
         [ -s "$f" ] || continue
         plain="$(mktemp)"; out="$DEST/list/$name.list"
         if ! mihomo convert-ruleset "$kind" mrs "$f" "$plain" 2>/dev/null; then
@@ -1481,8 +1485,13 @@ build_singbox() {
 
     mkdir -p "$DEST/singbox/site" "$DEST/singbox/geoip"
 
+    # 源目录：优先本次构建产物；本目标是「对已有 .mrs 转码」，单独跑时
+    # （如 CI 校验、只重生成 srs）$DEST 里没有 site/，回退到已提交的 ruleset/。
+    local src="$DEST"
+    [ -n "$(ls -A "$src/site" 2>/dev/null)" ] || src="ruleset"
+
     local okc=0 failc=0 f name kind plain out
-    for f in "$DEST"/site/*.mrs; do
+    for f in "$src"/site/*.mrs; do
         [ -s "$f" ] || continue
         name="$(basename "$f" .mrs)"; kind=domain
         plain="$(mktemp)"; out="$DEST/singbox/site/$name.srs"
@@ -1493,7 +1502,7 @@ build_singbox() {
         rm -f "$plain"
     done
 
-    for f in "$DEST"/geoip/*.mrs; do
+    for f in "$src"/geoip/*.mrs; do
         [ -s "$f" ] || continue
         name="$(basename "$f" .mrs)"; kind=ipcidr
         plain="$(mktemp)"; out="$DEST/singbox/geoip/$name.srs"
@@ -1508,7 +1517,7 @@ build_singbox() {
     local pair
     for pair in "Crypto:domain" "PayPal:domain"; do
         name="${pair%%:*}"; kind="${pair##*:}"
-        f="$DEST/$name.mrs"
+        f="$src/$name.mrs"
         [ -s "$f" ] || continue
         plain="$(mktemp)"; out="$DEST/singbox/$name.srs"
         if ! mihomo convert-ruleset "$kind" mrs "$f" "$plain" 2>/dev/null; then
