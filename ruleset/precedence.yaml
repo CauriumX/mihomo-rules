@@ -17,7 +17,7 @@
 # 修改后跑 bash build-rules.sh verify
 
 version: 1
-updated: 2026-11-08
+updated: 2026-11-26
 
 # ---------------------------------------------------------------------------
 # order —— 优先级
@@ -38,10 +38,14 @@ order:
   Crypto: 30
   Discord-Site: 30
   Disney-Site: 30
+  # 国际学术：优先于 China（China 列表也收录了 46 个国际出版商域，见下）
+  IntlAcademic-Site: 30
   Netflix-Site: 30
   PayPal: 30
   Pixiv-Site: 30
+  PlayStation-Site: 30   # 优先于 China（sonyentertainmentnetwork.com）
   Reddit-Site: 30
+  Spotify-Site: 30
   Steam-Site: 30
   Telegram-Site: 30
   Twitch-Site: 30
@@ -137,6 +141,22 @@ allowed_overlap:
 
   - pair: [Bilibili-Site, China-Site]
     why: B 站单独分流（港澳台/海外节点）
+
+  # ---- 2026-11 新接入类目（IntlAcademic / PlayStation / Spotify）----
+  # 三组的重叠值均由 check-overlap.py 实算得出，不是估计。
+
+  - pair: [China-Site, IntlAcademic-Site]
+    why: 上游 A 的 China 列表也收录了 46 个国际出版商域（acm.org / ieee.org /
+         nature.com / sciencedirect.com / springer.com / wiley.com / jstor.org …）。
+         📖IntlAcademic 在前，这些学术站点走学术组而非国内直连 —— 这正是
+         新增该组的目的。想直连的用户把 📖IntlAcademic 组切到 DIRECT 即可。
+
+  - pair: [China-Site, PlayStation-Site]
+    why: sonyentertainmentnetwork.com 同时在 China 列表里；PS 单独分组优先
+
+  - pair: [AD-Site, Spotify-Site]
+    why: adeventtracker.spotify.com / adstudio-assets.scdn.co 是 Spotify 的
+         广告与投放域名，上游同时列入 AD —— 优先拦截，不走 🎵Spotify
 
 # ---------------------------------------------------------------------------
 # 说明：为什么 AD 允许遮蔽这么多
