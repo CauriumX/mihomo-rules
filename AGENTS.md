@@ -7,7 +7,7 @@
 
 - **Name**: `mihomo-rules`
 - **Kind**: Node (package.json)
-- **Version**: `0.1.2`
+- **Version**: `0.1.3`
 - **CI**: `.github/workflows/ci.yml`
 
 ## README discipline (enforced, not optional)

@@ -12,7 +12,7 @@
 <div align="center">
 
 [![CI](https://img.shields.io/badge/CI-passing-34A853.svg)][ci]
-[![版本](https://img.shields.io/badge/版本-0.1.2-4285F4.svg)][tags]
+[![版本](https://img.shields.io/badge/版本-0.1.3-4285F4.svg)][tags]
 [![License: MIT](https://img.shields.io/badge/License%3A%20MIT-FBBC05.svg)][osi]
 
 </div>
@@ -47,8 +47,8 @@
 
 一套构建流水线，以及它产出的产物：
 
-- **19 个域名规则集** 与 **3 个 IP 规则集**，由 29 个上游文件构建
-- **多源合并** —— AD-Site 合并两个上游（316,103 条）；AI-Site 合并后剔除 15 条通用 SaaS 依赖（222 条）
+- **22 个域名规则集** 与 **3 个 IP 规则集**，由 32 个上游文件构建
+- **多源合并** —— AD-Site 合并两个上游（322,872 条）；AI-Site 合并后剔除 15 条通用 SaaS 依赖（224 条）
 - **构建脚本** —— 拉取、转换、筛选，并与已提交的产物比对
 - **校验工具** —— 51 项单元测试、规则集重叠契约、文档源码引用断言
 
@@ -59,7 +59,7 @@
 ```
 build-rules.sh            构建流水线（拉取、转换、筛选、比对）
 ruleset/
-  site/*.mrs              19 个域名规则集
+  site/*.mrs              22 个域名规则集
   geoip/*.mrs             3 个 IP 规则集
   Crypto.mrs              加密与交易所
   PayPal.txt              官方域名

@@ -12,7 +12,7 @@
 <div align="center">
 
 [![CI](https://img.shields.io/badge/CI-passing-34A853.svg)][ci]
-[![Version](https://img.shields.io/badge/Version-0.1.2-4285F4.svg)][tags]
+[![Version](https://img.shields.io/badge/Version-0.1.3-4285F4.svg)][tags]
 [![License: MIT](https://img.shields.io/badge/License%3A%20MIT-FBBC05.svg)][osi]
 
 </div>
@@ -53,9 +53,9 @@ change before it is applied.
 
 A build pipeline and the artefacts it produces:
 
-- **19 domain rulesets** and **3 IP rulesets**, built from 29 upstream files
-- **Multi-source merges** — AD-Site unions two upstreams (316,103 entries);
-  AI-Site merges then drops 15 generic SaaS dependencies (222 entries)
+- **22 domain rulesets** and **3 IP rulesets**, built from 32 upstream files
+- **Multi-source merges** — AD-Site unions two upstreams (322,872 entries);
+  AI-Site merges then drops 15 generic SaaS dependencies (224 entries)
 - **A build script** that fetches, converts, filters, and diffs against the
   committed artefacts
 - **Verification tooling** — 51 unit tests, ruleset-overlap contracts,
@@ -69,7 +69,7 @@ committed. Raw snapshots live in a separate private repository.
 ```
 build-rules.sh            build pipeline (fetch, convert, filter, diff)
 ruleset/
-  site/*.mrs              19 domain rulesets
+  site/*.mrs              22 domain rulesets
   geoip/*.mrs             3 IP rulesets
   Crypto.mrs              crypto and exchange
   PayPal.txt              official domains

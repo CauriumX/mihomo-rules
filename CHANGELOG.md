@@ -5,6 +5,14 @@ All notable changes to this project are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 versioning follows [SemVer 2.0.0](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.3] - 2026-11-26
+
+### Changed
+- **完整 apply 到快照 `snap-2026-11-26T16-09`**（与 ci.yml 中 mihomo v1.19.33 同版本构建），apply 后 `check` 零差异（幂等）。
+  - **AD-Site** `316,103 → 322,872`（+6,769，上游 Sakura 新增仿冒域）；**AI-Site** `222 → 224`（+`elevenlabsusercontent.com`、`+gemma.ai`）；**Crypto** `212 → 208`（顺带剔除 5 条退化的 `domain-keyword`）。
+  - **接入三个新规则集**：`IntlAcademic-Site`（465 条，89 精确 + 376 后缀）、**PlayStation-Site**、**Spotify-Site**（均为上游 Sakura 独有，上游 A 无此目录）。
+  - **差异判定修复**：`diff_report` 对「旧产物有、本轮未构建」退回 `SKIP`，不再把「还没轮到」误判为 `-100% = BLOCK`。
+
 ## [0.1.2] - 2026-11-12
 
 对齐已发布的流水线版本。规则集产物与 `mihomo-apply@v0.1.2` 同版，
