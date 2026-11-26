@@ -1152,6 +1152,17 @@ diff_report() {
         [ -n "$old_f" ] && [ -s "$old_f" ] && old_n=$(count_entries "$old_f")
         [ -n "$new_f" ] && [ -s "$new_f" ] && new_n=$(count_entries "$new_f")
 
+        # 旧产物里有、本轮却没构建出来 → 是「本轮输入缺失」（例如快照尚未归档
+        # 该上游类目），不是上游删掉了这个规则集。取源阶段已用 WARN 报过，
+        # 这里退回 SKIP、不参与分级。
+        #
+        # 不区分的话 465→0 会被判成 -100% = BLOCK，把「还没轮到它」误报成
+        # 「上游删了一半规则」—— 而后者正是最需要人警惕的那种信号。
+        if [ -n "$old_f" ] && [ -z "$new_f" ]; then
+            printf '  \033[33mSKIP\033[0m   %-24s %10s %10s  %s\n' "$n" "$old_n" "-" "本轮未构建（输入缺失）"
+            continue
+        fi
+
         # 字节级相同则跳过
         if [ -n "$old_f" ] && [ -n "$new_f" ] && cmp -s "$old_f" "$new_f"; then
             continue
