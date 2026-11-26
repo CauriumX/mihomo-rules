@@ -5,6 +5,21 @@ All notable changes to this project are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 versioning follows [SemVer 2.0.0](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.10] - 2026-11-26
+
+### Added
+- **Shadowrocket / Surge 支持：同源产出 27 个 `.list` 纯文本规则集** + `shadowrocket.ini` 模板。
+  - Shadowrocket 走 Surge 兼容纯文本列表（`DOMAIN-SUFFIX,x` / `IP-CIDR,x,no-resolve`）；mrs 与 srs 它都读不了。
+  - 三套产物（.mrs / .srs / .list）全部由同一份 `.mrs` 解码派生，保证一致。
+
+### Fixed
+- **两个 INI 模板的兜底写法错误**：原来在 `[rule]` 段写 `MATCH`，而 MiSub 先渲染 `[rule]`、后渲染 `[custom]` 的 `ruleset=` 行 —— FINAL 因此落在第 52 位，**27 条规则集全部排在它之后变成死规则**。
+  - sing-box 那条同样中招（match-all 在第 51 条）。
+  - 改用 MiSub 内置模板的写法 `ruleset=<组>,[]FINAL`；修后 FINAL 移到第 79 位，27 条规则集全部在其之前，`sing-box check` 通过。
+
+### Note
+- Shadowrocket 的 UA 在 MiSub 里被硬映射为 `base64`（只给节点，零规则），客户端订阅地址必须显式加 `?target=surge`。
+
 ## [0.1.9] - 2026-11-26
 
 ### Added

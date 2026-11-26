@@ -1,6 +1,6 @@
 {
   "name": "mihomo-rules",
-  "version": "0.1.9",
+  "version": "0.1.10",
   "description": "MiSub 订阅模板与规则集构建流水线",
   "private": true,
   "type": "module",
