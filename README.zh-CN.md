@@ -12,7 +12,7 @@
 <div align="center">
 
 [![CI](https://img.shields.io/badge/CI-passing-34A853.svg)][ci]
-[![版本](https://img.shields.io/badge/版本-0.1.7-4285F4.svg)][tags]
+[![版本](https://img.shields.io/badge/版本-0.1.8-4285F4.svg)][tags]
 [![License: MIT](https://img.shields.io/badge/License%3A%20MIT-FBBC05.svg)][osi]
 
 </div>

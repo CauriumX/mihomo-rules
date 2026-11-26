@@ -5,6 +5,13 @@ All notable changes to this project are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 versioning follows [SemVer 2.0.0](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.8] - 2026-11-26
+
+### Changed
+- **`proxy-groups` 顺序完全跟随上游订阅模板**：按 rules 段的匹配顺序（`🤖AI` → `📖IntlAcademic` → `💡Adobe` → … → `🍎Apple`/`🔍Google`/`💻Microsoft`）。三个 meta 组固定首、`Load Balance`/`Auto Select` 固定末。
+- **`rule-providers` 对齐**：`IntlAcademic-Site` 紧跟 `AI-Site`（上游做法），`China`/`Telegram` 保持 Site 在 IP 前。
+- 仅重排列表顺序，group 内容与 `rules` 未变（21 单测通过，v1.19.31/1.19.33 加载成功）。
+
 ## [0.1.7] - 2026-11-26
 
 ### Fixed
