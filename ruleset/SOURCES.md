@@ -240,6 +240,19 @@ DOMAIN-KEYWORD,colab  →  colab  →  mrs 里只匹配域名恰好等于 "colab
 
 ---
 
+### IntlAcademic / PlayStation / Spotify（2026-11 新增，纯 上游 B 源）
+
+| 项 | 值 |
+|---|---|
+| 上游 | 上游 B → `IntlAcademic/IntlAcademic-Site.mrs` / `PlayStation/PlayStation-Site.mrs` / `Spotify/Spotify-Site.mrs` |
+| 本地体量 | IntlAcademic 465 条（89 精确 + 376 后缀）；PlayStation / Spotify 数十条 |
+| 来源 | **上游 A（blackmatrix7）没有这三个类目**，纯 上游 B |
+| 取源失败处理 | `build-rules.sh check` 从快照 `b/` 读取；未归档时按「跳过 + 警告」处理，不阻断构建 |
+
+> 上游 B 类目全集（22 domain + 3 IP）与流水线接入状态的差异，由 `mihomo-upstream`
+> 新增的 `probe` 步骤监测：新增类目会写入 `inventory-changes.json` 并进 release note，
+> 由 `mihomo-rules` 的 schedule/dispatch CI 自动开 issue 提醒。
+
 ### Meta-Site
 
 | 项 | 值 |
