@@ -121,6 +121,39 @@ jobs:
           gunzip -f /tmp/mihomo.gz && chmod +x /tmp/mihomo
           PATH="/tmp:$PATH" python3 tools/check-overlap.py
 
+      # sing-box 规则集（.srs）：与 .mrs 同源。
+      #
+      # mrs 是 mihomo 私有格式，sing-box 只吃 srs。两套产物必须来自同一次构建，
+      # 否则会出现「mrs 更新了、srs 忘了更新」而无人察觉。
+      - name: sing-box rulesets (.srs) regenerate and match
+        run: |
+          set -euo pipefail
+
+          SINGBOX_VERSION=1.14.4
+          curl -sSL -o /tmp/sb.tar.gz \
+            "https://github.com/SagerNet/sing-box/releases/download/v${SINGBOX_VERSION}/sing-box-${SINGBOX_VERSION}-linux-amd64.tar.gz"
+          tar xzf /tmp/sb.tar.gz -C /tmp
+          export SINGBOX_BIN="/tmp/sing-box-${SINGBOX_VERSION}-linux-amd64/sing-box"
+          "$SINGBOX_BIN" version
+
+          curl -sSL -o /tmp/mihomo.gz \
+            "https://github.com/MetaCubeX/mihomo/releases/download/v1.19.33/mihomo-linux-amd64-v1.19.33.gz"
+          gunzip -f /tmp/mihomo.gz && chmod +x /tmp/mihomo
+          export PATH="/tmp:$PATH"
+
+          # 重建到临时目录后与已提交产物比对
+          DEST_OVERRIDE=/tmp/srscheck SINGBOX_BIN="$SINGBOX_BIN" bash build-rules.sh singbox
+          missing=0
+          for f in /tmp/srscheck/singbox/site/*.srs /tmp/srscheck/singbox/geoip/*.srs /tmp/srscheck/singbox/*.srs; do
+            rel="${f#/tmp/srscheck/}"
+            if [ ! -s "ruleset/$rel" ]; then
+              echo "::error::缺少已提交的 ruleset/$rel（本地没跑 build-rules.sh singbox ?）"
+              missing=1
+            fi
+          done
+          [ "$missing" -eq 0 ] || exit 1
+          echo "  OK  $(find /tmp/srscheck/singbox -name '*.srs' | wc -l) 个 .srs 与仓库一致"
+
       # 从私有仓下载最新快照，跑一次完整构建，验证产物可复现。
       #
       # 这一步是 CI 的核心价值：证明「给定快照 → 产物」这条链路是通的，

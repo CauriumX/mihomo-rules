@@ -1329,11 +1329,120 @@ decode_to_text() {
 # ---------------------------------------------------------------------------
 # 主流程
 # ---------------------------------------------------------------------------
+
+# ---------------------------------------------------------------------------
+# sing-box 规则集（.srs）
+#
+# 为什么需要：.mrs 是 mihomo 私有二进制，sing-box 只吃 .srs。要让同一套规则
+# 同时服务两种内核，必须从同一份数据再发一套 .srs。
+#
+# 数据来源是已提交的 .mrs（解码后即归一化文本），而不是重新拉上游 ——
+# 这样两种格式永远指向同一次构建，不会出现「mrs 更新了、srs 忘了更新」。
+#
+# 转换路径：.mrs --(mihomo decode)--> 裸文本 --(本脚本)--> 源 JSON
+#           --(sing-box rule-set compile)--> .srs
+# ---------------------------------------------------------------------------
+SINGBOX_BIN="${SINGBOX_BIN:-sing-box}"
+
+require_singbox() {
+    command -v "$SINGBOX_BIN" >/dev/null 2>&1 && return 0
+    bad "未找到 sing-box（生成 .srs 需要）"
+    printf '         安装：https://github.com/SagerNet/sing-box/releases\n' >&2
+    return 1
+}
+
+# text_to_srs <domain|ipcidr> <裸文本> <输出.srs>
+text_to_srs() {
+    local kind="$1" plain="$2" out="$3"
+    local src_json
+    src_json="$(mktemp)"
+
+    python3 - "$kind" "$plain" "$src_json" <<'PY2'
+import json, sys
+kind, plain, out = sys.argv[1:4]
+lines = [l.strip() for l in open(plain, encoding='utf-8', errors='ignore')
+         if l.strip() and not l.startswith('#')]
+rules = {}
+if kind == 'domain':
+    suffix = [l[2:] for l in lines if l.startswith('+.')]
+    exact = [l for l in lines if not l.startswith('+.')]
+    if exact:  rules['domain'] = sorted(set(exact))
+    if suffix: rules['domain_suffix'] = sorted(set(suffix))
+else:
+    rules['ip_cidr'] = sorted(set(lines))
+if not rules:
+    sys.exit('空规则集，拒绝生成')
+json.dump({'version': 3, 'rules': [rules]}, open(out, 'w', encoding='utf-8'),
+          ensure_ascii=False)
+PY2
+
+    if "$SINGBOX_BIN" rule-set compile "$src_json" -o "$out" >/dev/null 2>&1; then
+        rm -f "$src_json"
+        return 0
+    fi
+    bad "sing-box 编译失败：$out"
+    rm -f "$src_json"
+    return 1
+}
+
+build_singbox() {
+    require_singbox || return 1
+    log "生成 sing-box 规则集（.srs）→ $DEST/singbox/"
+
+    command -v mihomo >/dev/null 2>&1 || { bad "生成 .srs 需要 mihomo 解码 .mrs"; return 1; }
+
+    mkdir -p "$DEST/singbox/site" "$DEST/singbox/geoip"
+
+    local okc=0 failc=0 f name kind plain out
+    for f in "$DEST"/site/*.mrs; do
+        [ -s "$f" ] || continue
+        name="$(basename "$f" .mrs)"; kind=domain
+        plain="$(mktemp)"; out="$DEST/singbox/site/$name.srs"
+        if ! mihomo convert-ruleset domain mrs "$f" "$plain" 2>/dev/null; then
+            bad "$name 解码失败"; failc=$((failc+1)); rm -f "$plain"; continue
+        fi
+        if text_to_srs "$kind" "$plain" "$out"; then okc=$((okc+1)); else failc=$((failc+1)); fi
+        rm -f "$plain"
+    done
+
+    for f in "$DEST"/geoip/*.mrs; do
+        [ -s "$f" ] || continue
+        name="$(basename "$f" .mrs)"; kind=ipcidr
+        plain="$(mktemp)"; out="$DEST/singbox/geoip/$name.srs"
+        if ! mihomo convert-ruleset ipcidr mrs "$f" "$plain" 2>/dev/null; then
+            bad "$name 解码失败"; failc=$((failc+1)); rm -f "$plain"; continue
+        fi
+        if text_to_srs "$kind" "$plain" "$out"; then okc=$((okc+1)); else failc=$((failc+1)); fi
+        rm -f "$plain"
+    done
+
+    # Crypto / PayPal（根目录的 .mrs）
+    local pair
+    for pair in "Crypto:domain" "PayPal:domain"; do
+        name="${pair%%:*}"; kind="${pair##*:}"
+        f="$DEST/$name.mrs"
+        [ -s "$f" ] || continue
+        plain="$(mktemp)"; out="$DEST/singbox/$name.srs"
+        if ! mihomo convert-ruleset "$kind" mrs "$f" "$plain" 2>/dev/null; then
+            bad "$name 解码失败"; failc=$((failc+1)); rm -f "$plain"; continue
+        fi
+        if text_to_srs "$kind" "$plain" "$out"; then okc=$((okc+1)); else failc=$((failc+1)); fi
+        rm -f "$plain"
+    done
+
+    if [ "$failc" -gt 0 ]; then
+        bad "sing-box 规则集：$okc 成功 / $failc 失败"
+        return 1
+    fi
+    ok "sing-box 规则集：$okc 个全部生成"
+}
+
 case "$TARGET" in
     crypto) build_crypto; verify ;;
     paypal) build_paypal; verify ;;
     site)   build_site ;;
     geoip)  build_geoip ;;
+    singbox) build_singbox ;;
     verify) verify ;;
 
     # -----------------------------------------------------------------------
@@ -1365,6 +1474,7 @@ case "$TARGET" in
         build_paypal
         build_site
         build_geoip
+        build_singbox
 
         # 临时产物与现有产物对比
         rc=0
@@ -1392,6 +1502,7 @@ case "$TARGET" in
         build_paypal
         build_site
         build_geoip
+        build_singbox
         verify
         echo
         log "构建完成。产物："
