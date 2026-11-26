@@ -5,6 +5,14 @@ All notable changes to this project are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 versioning follows [SemVer 2.0.0](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.5] - 2026-11-26
+
+### Changed
+- **`tun.stack` 由 `system` 改为 `mips`** —— mihomo 自研的纯 Go 用户态 IP 栈，跨平台行为一致、内存低于 gvisor；`system` 走内核栈，Windows/macOS/Android 行为不一致。
+  - **要求内核 ≥ v1.19.31**（v1.19.18 / v1.19.30 实测报 `invalid tun stack`，整份配置拒绝加载）。
+  - 兼容更早内核请改回 `stack: system`。
+- 发布仓的最低内核校验从 v1.19.18 抬到 **v1.19.31**，使兼容性下限与模板真实要求一致。
+
 ## [0.1.4] - 2026-11-26
 
 ### Changed
