@@ -5,6 +5,18 @@ All notable changes to this project are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 versioning follows [SemVer 2.0.0](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.9] - 2026-11-26
+
+### Added
+- **sing-box 支持：同源产出 27 个 `.srs` 规则集** + `singbox.ini` 模板。
+  - `.mrs` 是 mihomo 私有二进制，sing-box 只吃 `.srs`；此前 sing-box 客户端拿不到本项目的任何一条规则。
+  - 转换链：`.mrs` → mihomo 解码 → 源 JSON → `sing-box rule-set compile` → `.srs`，与 mrs 同一次构建。
+  - 条目数逐一核对：AD-Site 322,872 / China-IP 11,775 / AI 224 / IntlAcademic 465 / Spotify 28。
+- `singbox.ini`（ACL4SSR 语法）供 MiSub 的 sing-box profile 使用：27 条 ruleset + 27 个代理组，由 MiSub 渲染成 sing-box JSON。
+
+### Note
+- MiSub 的 INI→sing-box 渲染器曾给 `urltest` 写 `default` 字段（sing-box 不接受，整份配置加载失败）；已在其 fork 中修好，仅 `selector` 写 `default`。
+
 ## [0.1.8] - 2026-11-26
 
 ### Changed
