@@ -176,7 +176,9 @@ jobs:
 
           # 纯文本格式必须是 Surge 那套（DOMAIN,/DOMAIN-SUFFIX,/IP-CIDR…），
           # 不能混进 mihomo 语法（+. 前缀）或二进制
-          bad=$(grep -hcE '^\+\.' ruleset/list/site/*.list 2>/dev/null | awk '{s+=$1} END{print s+0}')
+          # 用 awk 而不是 grep：干净产物上 grep 无匹配返回 1，配合 pipefail + set -e
+          # 会把整个步骤判失败（本步第一次上线就是这么红的，而产物其实是对的）。
+          bad=$(awk '/^\+\./ { n++ } END { print n+0 }' ruleset/list/site/*.list 2>/dev/null || echo 0)
           if [ "$bad" -ne 0 ]; then
             echo "::error::list 里出现了 mihomo 风格前缀（+.），应为 DOMAIN-SUFFIX,";
             exit 1
